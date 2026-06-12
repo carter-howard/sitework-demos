@@ -345,7 +345,7 @@ export default function App() {
       const res = await fetch(`${WORKER}/analyze`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: url.trim() }),
+        body: JSON.stringify({ gbpurl: url.trim() }),
       });
 
       if (!res.ok) {
