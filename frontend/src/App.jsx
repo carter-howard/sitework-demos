@@ -236,10 +236,15 @@ function InternalApp() {
 
   return (
     <div style={{ background: C.bg, minHeight: "100vh", color: C.text, fontFamily: "'Montserrat', 'Segoe UI', sans-serif" }}>
-      <div style={{ borderBottom: `1px solid ${C.border}`, padding: "16px 24px", display: "flex", alignItems: "center", gap: 12 }}>
-        <span style={{ color: C.green, fontWeight: 900, fontSize: 15, letterSpacing: ".12em", textTransform: "uppercase" }}>SITEWORK</span>
-        <span style={{ color: C.dim, fontSize: 11 }}>|</span>
-        <span style={{ color: C.muted, fontSize: 11, letterSpacing: ".06em", textTransform: "uppercase" }}>Prospect Analyzer</span>
+      <div style={{ borderBottom: `1px solid ${C.border}`, padding: "16px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <span style={{ color: C.green, fontWeight: 900, fontSize: 15, letterSpacing: ".12em", textTransform: "uppercase" }}>SITEWORK</span>
+          <span style={{ color: C.dim, fontSize: 11 }}>|</span>
+          <span style={{ color: C.muted, fontSize: 11, letterSpacing: ".06em", textTransform: "uppercase" }}>Prospect Analyzer</span>
+        </div>
+        <a href="https://sitework.build" target="_blank" rel="noreferrer" style={{ color: C.muted, fontSize: 11, textDecoration: "none", letterSpacing: ".06em", textTransform: "uppercase" }}>
+          ← sitework.build
+        </a>
       </div>
 
       <div style={{ maxWidth: 1020, margin: "0 auto", padding: "32px 24px" }}>
@@ -678,10 +683,15 @@ Scanned: ${new Date().toLocaleString()}`,
 
   return (
     <div style={{ background: C.bg, minHeight: "100vh", color: C.text, fontFamily: "'Montserrat', 'Segoe UI', sans-serif" }}>
-      <div style={{ borderBottom: `1px solid ${C.border}`, padding: "16px 24px", display: "flex", alignItems: "center", gap: 12 }}>
-        <span style={{ color: C.green, fontWeight: 900, fontSize: 15, letterSpacing: ".12em", textTransform: "uppercase" }}>SITEWORK</span>
-        <span style={{ color: C.dim, fontSize: 11 }}>|</span>
-        <span style={{ color: C.muted, fontSize: 11, letterSpacing: ".06em", textTransform: "uppercase" }}>Free Online Presence Scan</span>
+      <div style={{ borderBottom: `1px solid ${C.border}`, padding: "16px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <span style={{ color: C.green, fontWeight: 900, fontSize: 15, letterSpacing: ".12em", textTransform: "uppercase" }}>SITEWORK</span>
+          <span style={{ color: C.dim, fontSize: 11 }}>|</span>
+          <span style={{ color: C.muted, fontSize: 11, letterSpacing: ".06em", textTransform: "uppercase" }}>Free Online Presence Scan</span>
+        </div>
+        <a href="https://sitework.build" target="_blank" rel="noreferrer" style={{ color: C.muted, fontSize: 11, textDecoration: "none", letterSpacing: ".06em", textTransform: "uppercase" }}>
+          ← sitework.build
+        </a>
       </div>
 
       <div style={{ maxWidth: 760, margin: "0 auto", padding: "40px 24px" }}>
