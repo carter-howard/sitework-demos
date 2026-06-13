@@ -168,10 +168,8 @@ ${d.narrative?.coldEmail ? `<div class="card"><div class="label">Cold Email</div
 // ─── Main App ─────────────────────────────────────────────────────────────────
 const TABS = ["Overview", "Competitive", "Game Plan", "Outreach"];
 
-export default function App() {
+function InternalApp() {
   const [url, setUrl] = useState("");
-  const [email, setEmail] = useState("");
-  const [emailGated, setEmailGated] = useState(false);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
   const [data, setData] = useState(null);
@@ -207,12 +205,6 @@ export default function App() {
       setLoading(false);
     }
   }, [url]);
-
-  const handleEmailGate = useCallback(() => {
-    if (!email.trim()) return;
-    console.log("[SITEWORK] Email captured:", email.trim());
-    setEmailGated(true);
-  }, [email]);
 
   const downloadReport = useCallback(() => {
     if (!data) return;
@@ -271,24 +263,7 @@ export default function App() {
           {error && <div style={{ color: C.red, fontSize: 12, marginTop: 8 }}>⚠ {error}</div>}
         </div>
 
-        {data && !emailGated && (
-          <div style={{ ...S.card, background: "#0D1A0D", border: `1px solid ${C.green}44` }}>
-            <div style={{ filter: "blur(4px)", pointerEvents: "none", marginBottom: 12 }}>
-              <div style={{ color: C.text, fontSize: 16, fontWeight: 700 }}>{prospect.name}</div>
-              <div style={{ color: C.muted, fontSize: 12 }}>{prospect.reviewCount} reviews · {prospect.rating}★ · Opportunity {opportunity}/100</div>
-            </div>
-            <div style={{ textAlign: "center" }}>
-              <div style={{ color: C.text, fontSize: 13, fontWeight: 700, marginBottom: 4 }}>Enter your email to unlock the full report</div>
-              <div style={{ color: C.muted, fontSize: 11, marginBottom: 14 }}>Free. No spam. Just the intelligence.</div>
-              <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
-                <input style={{ ...S.input, maxWidth: 280 }} value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleEmailGate()} placeholder="you@email.com" type="email" />
-                <button style={S.btn("primary")} onClick={handleEmailGate}>Unlock</button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {data && emailGated && (
+        {data && (
           <>
             {prospect.matchWarning && (
               <div style={{ background: "#1A1608", border: `1px solid ${C.yellow}44`, borderRadius: 6, padding: "10px 14px", marginBottom: 16, color: C.yellow, fontSize: 12 }}>
@@ -541,4 +516,246 @@ export default function App() {
       </div>
     </div>
   );
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// CUSTOMER-FACING SCANNER — /scan
+// ════════════════════════════════════════════════════════════════════════════
+
+const gradeFor = (n) => (n >= 85 ? "A" : n >= 70 ? "B" : n >= 55 ? "C" : n >= 40 ? "D" : "F");
+const gradeColor = (g) => (g === "A" || g === "B" ? C.greenBright : g === "C" ? C.yellow : C.red);
+
+// Translate crawl + score data into plain-English wins and gaps
+function buildPlainEnglish(d) {
+  const crawl = d.prospectCrawl || {};
+  const p = d.prospect || {};
+  const ps = d.comparison?.prospect || {};
+  const wins = [];
+  const gapsOut = [];
+
+  // Wins
+  if (p.rating >= 4.5 && p.reviewCount >= 50)
+    wins.push({ t: `${p.rating}★ across ${p.reviewCount.toLocaleString()} reviews`, d: "Customers clearly love your work. That reputation is your biggest asset." });
+  if (crawl.hasPhoneLink)
+    wins.push({ t: "Click-to-call works on mobile", d: "Customers on their phone can reach you in one tap." });
+  if (crawl.hasBookingWidget)
+    wins.push({ t: "Online booking is set up", d: "Customers can schedule without calling — a big convenience edge." });
+  if (crawl.hasSchema)
+    wins.push({ t: "Google can read your site structure", d: "Your site speaks Google's language, which helps you show up in results." });
+  if (p.hours?.length >= 7)
+    wins.push({ t: "Business hours fully listed", d: "Customers know exactly when they can reach you." });
+  if (crawl.hasEmergencyText)
+    wins.push({ t: "Emergency availability is visible", d: "Urgent jobs are the most profitable — and you're signaling you take them." });
+
+  // Gaps — each with a real-world cost
+  if (!p.website)
+    gapsOut.push({ t: "No website found on your Google profile", d: "When customers want to verify you're legit before calling, there's nothing to find. Most will call the next name on the list." });
+  if (p.website && !crawl.hasBookingWidget)
+    gapsOut.push({ t: "No online booking", d: "Customers searching at 9pm can't schedule with you — but they can with competitors who have booking. That job is gone by morning." });
+  if (p.website && !crawl.hasPhoneLink)
+    gapsOut.push({ t: "Phone number isn't tappable on mobile", d: "Most local searches happen on phones. If they can't tap to call, you're adding friction at the exact moment they decided to hire you." });
+  if (!crawl.hasLicenseNumber && !crawl.hasBBBLink)
+    gapsOut.push({ t: "License and credentials not shown", d: "Homeowners letting a stranger into their house want proof you're licensed and insured. Showing it builds trust before the first call." });
+  if (p.website && !crawl.hasSchema)
+    gapsOut.push({ t: "Site is invisible to Google's deeper search features", d: "Schema markup is how Google understands your services and area. Without it, competitors take map and search placements you should own." });
+  if (p.photoCount < 10)
+    gapsOut.push({ t: `Only ${p.photoCount} photos on your Google profile`, d: "Profiles with more photos get significantly more calls and direction requests. Real job photos build instant trust." });
+  if (crawl.crawled && crawl.trustKeywords < 2)
+    gapsOut.push({ t: "Trust language missing from your site", d: "Words like 'licensed', 'insured', and 'family owned' are what homeowners scan for. Your site barely uses them." });
+  if (p.website && !crawl.hasFinancing)
+    gapsOut.push({ t: "No financing options mentioned", d: "Big-ticket jobs often hinge on payment flexibility. Competitors offering financing win the jobs you quote but don't close." });
+
+  return { wins: wins.slice(0, 4), gaps: gapsOut.slice(0, 4) };
+}
+
+function CustomerApp() {
+  const [url, setUrl] = useState("");
+  const [email, setEmail] = useState("");
+  const [emailGated, setEmailGated] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState("");
+  const [data, setData] = useState(null);
+  const [error, setError] = useState(null);
+
+  const analyze = useCallback(async () => {
+    if (!url.trim()) return;
+    setLoading(true); setError(null); setData(null); setEmailGated(false);
+    setStatus("Scanning your online presence… this takes about 30 seconds.");
+    try {
+      const res = await fetch(`${WORKER}/analyze`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gbpUrl: url.trim() }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Scan failed — double-check your Google Maps link.");
+      }
+      setData(await res.json());
+      setStatus("");
+    } catch (e) { setError(e.message); }
+    finally { setLoading(false); }
+  }, [url]);
+
+  const unlock = useCallback(() => {
+    if (!email.trim() || !email.includes("@")) return;
+    console.log("[SITEWORK LEAD] email:", email.trim(), "| business:", data?.prospect?.name, "| url:", url.trim());
+    setEmailGated(true);
+  }, [email, data, url]);
+
+  const p = data?.prospect || {};
+  const ps = data?.comparison?.prospect || {};
+  const overall = ps.overall ?? 0;
+  const grade = gradeFor(overall);
+  const competitors = (data?.competitors || []).slice().sort((a, b) => (b.reviewCount || 0) - (a.reviewCount || 0)).slice(0, 3);
+  const plain = data ? buildPlainEnglish(data) : { wins: [], gaps: [] };
+
+  return (
+    <div style={{ background: C.bg, minHeight: "100vh", color: C.text, fontFamily: "'Montserrat', 'Segoe UI', sans-serif" }}>
+      <div style={{ borderBottom: `1px solid ${C.border}`, padding: "16px 24px", display: "flex", alignItems: "center", gap: 12 }}>
+        <span style={{ color: C.green, fontWeight: 900, fontSize: 15, letterSpacing: ".12em", textTransform: "uppercase" }}>SITEWORK</span>
+        <span style={{ color: C.dim, fontSize: 11 }}>|</span>
+        <span style={{ color: C.muted, fontSize: 11, letterSpacing: ".06em", textTransform: "uppercase" }}>Free Online Presence Scan</span>
+      </div>
+
+      <div style={{ maxWidth: 760, margin: "0 auto", padding: "40px 24px" }}>
+        {!data && (
+          <div style={{ textAlign: "center", marginBottom: 28 }}>
+            <h1 style={{ fontSize: 26, fontWeight: 800, marginBottom: 10 }}>How does your business look online?</h1>
+            <p style={{ color: C.muted, fontSize: 14, lineHeight: 1.7, maxWidth: 560, margin: "0 auto" }}>
+              Paste your Google Maps link and we'll scan your online presence the way a customer sees it — reviews, website, booking, trust signals — and show you exactly where jobs are slipping away.
+            </p>
+          </div>
+        )}
+
+        <div style={S.card}>
+          <label style={S.label}>Your Google Maps link</label>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <input
+              style={{ ...S.input, flex: 1, minWidth: 240 }}
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && analyze()}
+              placeholder="Search your business on Google Maps, tap Share, paste the link here"
+              disabled={loading}
+            />
+            <button style={{ ...S.btn("primary"), opacity: loading ? 0.6 : 1 }} onClick={analyze} disabled={loading || !url.trim()}>
+              {loading ? "Scanning…" : "Run Free Scan"}
+            </button>
+          </div>
+          {status && <div style={{ color: C.muted, fontSize: 11, marginTop: 8 }}>{status}</div>}
+          {error && <div style={{ color: C.red, fontSize: 12, marginTop: 8 }}>⚠ {error}</div>}
+        </div>
+
+        {data && !emailGated && (
+          <div style={{ ...S.card, background: "#0D1A0D", border: `1px solid ${C.green}44`, textAlign: "center", padding: 28 }}>
+            <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 4 }}>{p.name}</div>
+            <div style={{ color: C.muted, fontSize: 12, marginBottom: 18 }}>Scan complete. Your results are ready.</div>
+            <div style={{ display: "inline-block", filter: "blur(6px)", pointerEvents: "none", marginBottom: 18 }}>
+              <span style={{ fontSize: 56, fontWeight: 900, color: gradeColor(grade) }}>{grade}</span>
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>Where should we send your full report?</div>
+            <div style={{ color: C.muted, fontSize: 11, marginBottom: 14 }}>Free. No spam, no obligation — just the results.</div>
+            <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
+              <input style={{ ...S.input, maxWidth: 280 }} value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={(e) => e.key === "Enter" && unlock()} placeholder="you@yourbusiness.com" type="email" />
+              <button style={S.btn("primary")} onClick={unlock}>Show My Results</button>
+            </div>
+          </div>
+        )}
+
+        {data && emailGated && (
+          <>
+            {/* Grade card */}
+            <div style={{ ...S.card, display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap" }}>
+              <div style={{ textAlign: "center", minWidth: 110 }}>
+                <div style={{ fontSize: 64, fontWeight: 900, color: gradeColor(grade), lineHeight: 1 }}>{grade}</div>
+                <div style={{ color: C.muted, fontSize: 10, textTransform: "uppercase", letterSpacing: ".08em", marginTop: 6 }}>Online Presence Grade</div>
+              </div>
+              <div style={{ flex: 1, minWidth: 220 }}>
+                <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 4 }}>{p.name}</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
+                  <Stars rating={p.rating} />
+                  <span style={{ color: C.muted, fontSize: 12 }}>{(p.reviewCount || 0).toLocaleString()} Google reviews</span>
+                </div>
+                <div style={{ color: C.muted, fontSize: 12, lineHeight: 1.6 }}>
+                  {grade === "A" && "Your online presence is strong. The opportunities below are about protecting your lead and squeezing more out of what's working."}
+                  {grade === "B" && "Solid foundation with real gaps. Customers can find you — but some are leaking to competitors at key moments."}
+                  {(grade === "C" || grade === "D") && "Your reputation is better than your online presence shows. That mismatch is costing you jobs every week."}
+                  {grade === "F" && "Customers who hear about you can't verify you online — and in 2026, that means most of them keep scrolling."}
+                </div>
+              </div>
+            </div>
+
+            {/* Wins */}
+            {plain.wins.length > 0 && (
+              <Section title="What you're doing right">
+                {plain.wins.map((w, i) => (
+                  <div key={i} style={{ background: "#0D150A", border: `1px solid ${C.greenBright}33`, borderRadius: 6, padding: "12px 16px", marginBottom: 8 }}>
+                    <div style={{ color: C.text, fontSize: 13, fontWeight: 700, marginBottom: 3 }}>✓ {w.t}</div>
+                    <div style={{ color: C.muted, fontSize: 12, lineHeight: 1.6 }}>{w.d}</div>
+                  </div>
+                ))}
+              </Section>
+            )}
+
+            {/* Gaps */}
+            {plain.gaps.length > 0 && (
+              <Section title="Where jobs are slipping away">
+                {plain.gaps.map((g, i) => (
+                  <div key={i} style={{ background: "#1E0808", border: `1px solid ${C.red}33`, borderRadius: 6, padding: "12px 16px", marginBottom: 8 }}>
+                    <div style={{ color: C.text, fontSize: 13, fontWeight: 700, marginBottom: 3 }}>✕ {g.t}</div>
+                    <div style={{ color: C.muted, fontSize: 12, lineHeight: 1.6 }}>{g.d}</div>
+                  </div>
+                ))}
+              </Section>
+            )}
+
+            {/* Competitive snapshot */}
+            {competitors.length > 0 && (
+              <Section title="Your market at a glance">
+                <div style={{ color: C.muted, fontSize: 12, marginBottom: 12, lineHeight: 1.6 }}>
+                  When a customer searches for your trade in your area, here's who they see next to you:
+                </div>
+                {competitors.map((c, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: C.surface, border: `1px solid ${C.border}`, borderRadius: 6, padding: "12px 16px", marginBottom: 8, flexWrap: "wrap", gap: 8 }}>
+                    <span style={{ color: C.text, fontSize: 13, fontWeight: 600 }}>{c.name}</span>
+                    <span style={{ color: C.muted, fontSize: 12 }}>{(c.reviewCount || 0).toLocaleString()} reviews · {c.rating}★</span>
+                  </div>
+                ))}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#0D1A0D", border: `1px solid ${C.green}44`, borderRadius: 6, padding: "12px 16px", flexWrap: "wrap", gap: 8 }}>
+                  <span style={{ color: C.greenBright, fontSize: 13, fontWeight: 700 }}>{p.name} (you)</span>
+                  <span style={{ color: C.muted, fontSize: 12 }}>{(p.reviewCount || 0).toLocaleString()} reviews · {p.rating}★</span>
+                </div>
+              </Section>
+            )}
+
+            {/* What it takes */}
+            <Section title="What it takes to be the #1 choice in your market">
+              <div style={{ color: C.muted, fontSize: 12, lineHeight: 1.8 }}>
+                The contractors who dominate local search all do the same five things: they keep reviews coming in steadily, their Google profile is complete down to the photos, their website turns visitors into phone calls instead of just existing, every service they offer has its own findable page, and trust signals — license, insurance, guarantees — are impossible to miss. None of it is complicated. It's just consistent, and most contractors never get around to it. That's the opening.
+              </div>
+            </Section>
+
+            {/* CTA */}
+            <div style={{ ...S.card, background: "#0D1A0D", border: `1px solid ${C.green}44`, textAlign: "center", padding: 28 }}>
+              <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 6 }}>Want to see what {p.name} could look like?</div>
+              <div style={{ color: C.muted, fontSize: 13, marginBottom: 16, lineHeight: 1.6 }}>
+                We build you a free mock site before we ever talk business. If you like it, we'll talk. If not, no hard feelings.
+              </div>
+              <a href={`https://sitework.build/get-started?biz=${encodeURIComponent(p.name || "")}`} style={{ ...S.btn("primary"), textDecoration: "none", display: "inline-block" }}>
+                Get My Free Mock Site →
+              </a>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Path router ──────────────────────────────────────────────────────────────
+export default function App() {
+  const path = window.location.pathname.replace(/\/$/, "");
+  if (path === "/scan") return <CustomerApp />;
+  return <InternalApp />;
 }
